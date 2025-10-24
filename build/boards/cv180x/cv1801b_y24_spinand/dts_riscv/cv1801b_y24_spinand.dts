@@ -1,0 +1,168 @@
+/dts-v1/;
+#include "cv180x_base_riscv.dtsi"
+#include "cv180x_asic_qfn.dtsi"
+#include "cv180x_asic_spinand.dtsi"
+#include "cv180x_default_memmap.dtsi"
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/soc/cvitek,boot-mode.h>
+
+/ {
+	/delete-node/ i2s@04110000; // dma 冲突
+	/delete-node/ cv-sd@4310000;
+	/delete-node/ ethernet@4070000;
+	/delete-node/ spi0@04180000;
+	/delete-node/ spi2@041A0000;
+	/delete-node/ spi3@041B0000;
+	/delete-node/ i2c@04000000;
+	/delete-node/ i2c@04010000;
+	/delete-node/ i2c@04020000;
+	/delete-node/ i2c@04030000;
+	/delete-node/ i2c@04040000;
+	/delete-node/ serial@04160000;
+	/delete-node/ serial@04170000;
+	/delete-node/ serial@041C0000;
+	/delete-node/ cif;
+	/delete-node/ vi;
+	/delete-node/ vpss;
+	/delete-node/ dwa;
+	/delete-node/ rgn;
+	/delete-node/ vcodec;
+	/delete-node/ jpu;
+	/delete-node/ cvi_vc_drv;
+
+	rotary:ratary-encoder {
+		compatible = "rotary-encoder";
+		linux,axis = <0>; /* REL_X */
+		rotary-encoder,relative-axis;
+		rotary-encoder,steps-per-period = <2>;
+		gpios = <&porta 7 GPIO_ACTIVE_LOW>, <&porta 8 GPIO_ACTIVE_LOW>;
+	};
+
+	pmugrf: syscon@0x05026ff0 {
+		compatible = "syscon", "simple-mfd";
+		reg = <0x0 0x05026ff0 0x0 0x4>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reboot-mode {
+			compatible = "syscon-reboot-mode";
+			offset = <0x0>;
+			mode-normal = <BOOT_NORMAL>;
+			mode-recovery = <BOOT_RECOVERY>;
+			mode-loader = <BOOT_BL_DOWNLOAD>;
+			mode-charge = <BOOT_CHARGING>;
+			status = "okay";
+		};
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		key-play {
+			label = "play";
+			gpios = <&porta 11 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_PLAY>;
+			debounce-interval = <5>;
+		};
+
+		key-back {
+			label = "back";
+			gpios = <&portc 10 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_BACK>;
+			debounce-interval = <5>;
+		};
+
+		key-menu {
+			label = "menu";
+			gpios = <&portc 9 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_MENU>;
+			debounce-interval = <5>;
+		};
+	};
+
+	backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwm3 0 100000 0>;
+		brightness-levels = <
+		0   1   2   3   4   5   6   7
+		8   9  10   11  12  13  14  15
+		16  17  18  19  20  21  22  23
+		24  25  26  27  28  29  30  31
+		32  33  34  35  36  37  38  39
+		40  41  42  43  44  45  46  47
+		48  49  50  51  52  53  54  55
+		56  57  58  59  60  61  62  63
+		64  65  66  67  68  69  70  71
+		72  73  74  75  76  77  78  79
+		80  81  82  83  84  85  86  87
+		88  89  90  91  92  93  94  95
+		96  97  98  99  100 101 102 103
+		104 105 106 107 108 109 110 111
+		112 113 114 115 116 117 118 119
+		120 121 122 123 124 125 126 127
+		128 129 130 131 132 133 134 135
+		136 137 138 139 140 141 142 143
+		144 145 146 147 148 149 150 151
+		152 153 154 155 156 157 158 159
+		160 161 162 163 164 165 166 167
+		168 169 170 171 172 173 174 175
+		176 177 178 179 180 181 182 183
+		184 185 186 187 188 189 190 191
+		192 193 194 195 196 197 198 199
+		200 201 202 203 204 205 206 207
+		208 209 210 211 212 213 214 215
+		216 217 218 219 220 221 222 223
+		224 225 226 227 228 229 230 231
+		232 233 234 235 236 237 238 239
+		240 241 242 243 244 245 246 247
+		248 249 250 251 252 253 254 255>;
+		default-brightness-level = <200>;
+		post-pwm-on-delay-ms = <10>;
+	};
+};
+
+&spi1 {
+	status = "okay";
+	dmas = <&dmac 2 1 1
+		&dmac 3 1 1>;
+	dma-names = "rx", "tx";
+	capability = "txrx";
+	cs-gpios = <&portb 10 GPIO_ACTIVE_LOW>;
+
+	st7789v@0 {
+		compatible = "sitronix,st7789v"; // 屏幕驱动名称：下面 step4 中设置
+		spi-max-frequency = <75000000>;   // SPI 的速率，影响帧率，注意 SPI 的上限和屏幕支持的上限
+		txbuflen = <153600>; // 发送 buffer 大小
+		reg = <0>; // chip select 0
+		buswidth = <8>;
+		fps=<60>;
+		dc-gpios = <&portb 8 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&portc 6 GPIO_ACTIVE_HIGH>; // step2 确定 high/low
+		te-gpios = <&portc 7 GPIO_ACTIVE_HIGH>;
+		// rotation = <0>;
+		status = "okay";
+		debug = <0x0>; // 0x20 show fps
+	};
+};
+
+&sysdma_remap {
+	ch-remap = <CVI_I2S0_RX CVI_I2S2_TX CVI_SPI1_RX CVI_SPI1_TX
+			CVI_SPI_NAND CVI_SPI_NAND CVI_I2S2_RX CVI_I2S3_TX>;
+};
+
+&dac{
+	status = "okay";
+	mute-gpio-r = <&porta 15 GPIO_ACTIVE_HIGH>;
+};
+
+&wifisd{
+	status = "okay";
+};
+
+&wifi_pin{
+	poweron-gpio = <&porte 25 GPIO_ACTIVE_HIGH>;
+	wakeup-gpio = <&porte 26 GPIO_ACTIVE_HIGH>;
+};
+
+&uart1{
+	status = "okay";
+};

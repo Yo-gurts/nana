@@ -1,0 +1,13 @@
+<physical_partition type="spinand">
+    <!--Uboot will ues 9th block to store a back up of fip.bin.
+    Please keep the first 2.5MB reserved for fip and fip size less than 1.25MB-->
+    <partition label="fip" size_in_kb="2560" file="fip_spl.bin"/>
+    <partition label="vendor" size_in_kb="1024" file="vendor.spinand"/>
+    <partition label="misc" size_in_kb="1024" file="misc.spinand"/>
+    <partition label="ENV" size_in_kb="128" file="" />
+    <partition label="boot_a" size_in_kb="4096" file="boot.spinand"/>
+    <partition label="recovery" size_in_kb="32768" file="recovery.spinand"/>
+    <partition label="rootfs_a" size_in_kb="92160" file="rootfs.spinand" />
+    <partition label="USERDATA" size_in_kb="92160" file="userdata.spinand" mountpoint="/userdata" type="ubifs" />
+    <partition label="USERDISK" size_in_kb="30720" file="userdisk.spinand" mountpoint="/userdisk" type="ubifs" />
+</physical_partition>

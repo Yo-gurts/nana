@@ -4,7 +4,6 @@
 #include "cv180x_asic_spinand.dtsi"
 #include "cv180x_default_memmap.dtsi"
 #include <dt-bindings/input/input.h>
-#include <dt-bindings/soc/cvitek,boot-mode.h>
 
 / {
 	/delete-node/ i2s@04110000; // dma 冲突
@@ -36,22 +35,6 @@
 		rotary-encoder,relative-axis;
 		rotary-encoder,steps-per-period = <2>;
 		gpios = <&porta 7 GPIO_ACTIVE_LOW>, <&porta 8 GPIO_ACTIVE_LOW>;
-	};
-
-	pmugrf: syscon@0x05026ff0 {
-		compatible = "syscon", "simple-mfd";
-		reg = <0x0 0x05026ff0 0x0 0x4>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		reboot-mode {
-			compatible = "syscon-reboot-mode";
-			offset = <0x0>;
-			mode-normal = <BOOT_NORMAL>;
-			mode-recovery = <BOOT_RECOVERY>;
-			mode-loader = <BOOT_BL_DOWNLOAD>;
-			mode-charge = <BOOT_CHARGING>;
-			status = "okay";
-		};
 	};
 
 	gpio-keys {
@@ -144,7 +127,7 @@
 	};
 };
 
-&sysdma_remap {
+&{/sysdma_remap} {
 	ch-remap = <CVI_I2S0_RX CVI_I2S2_TX CVI_SPI1_RX CVI_SPI1_TX
 			CVI_SPI_NAND CVI_SPI_NAND CVI_I2S2_RX CVI_I2S3_TX>;
 };
@@ -154,11 +137,11 @@
 	mute-gpio-r = <&porta 15 GPIO_ACTIVE_HIGH>;
 };
 
-&wifisd{
+&{/wifi-sd@4320000} {
 	status = "okay";
 };
 
-&wifi_pin{
+&{/wifi_pin} {
 	poweron-gpio = <&porte 25 GPIO_ACTIVE_HIGH>;
 	wakeup-gpio = <&porte 26 GPIO_ACTIVE_HIGH>;
 };

@@ -3,32 +3,9 @@
 #include "cv180x_asic_qfn.dtsi"
 #include "cv180x_asic_spinand.dtsi"
 #include "cv180x_default_memmap.dtsi"
-#include <dt-bindings/input/input.h>
+// #include <dt-bindings/input/input.h>
 
 / {
-	/delete-node/ i2s@04110000; // dma 冲突
-	/delete-node/ cv-sd@4310000;
-	/delete-node/ ethernet@4070000;
-	/delete-node/ spi0@04180000;
-	/delete-node/ spi2@041A0000;
-	/delete-node/ spi3@041B0000;
-	/delete-node/ i2c@04000000;
-	/delete-node/ i2c@04010000;
-	/delete-node/ i2c@04020000;
-	/delete-node/ i2c@04030000;
-	/delete-node/ i2c@04040000;
-	/delete-node/ serial@04160000;
-	/delete-node/ serial@04170000;
-	/delete-node/ serial@041C0000;
-	/delete-node/ cif;
-	/delete-node/ vi;
-	/delete-node/ vpss;
-	/delete-node/ dwa;
-	/delete-node/ rgn;
-	/delete-node/ vcodec;
-	/delete-node/ jpu;
-	/delete-node/ cvi_vc_drv;
-
 	rotary:ratary-encoder {
 		compatible = "rotary-encoder";
 		linux,axis = <0>; /* REL_X */
@@ -37,30 +14,52 @@
 		gpios = <&porta 7 GPIO_ACTIVE_LOW>, <&porta 8 GPIO_ACTIVE_LOW>;
 	};
 
-	gpio-keys {
-		compatible = "gpio-keys";
-
-		key-play {
-			label = "play";
-			gpios = <&porta 11 GPIO_ACTIVE_LOW>;
-			linux,code = <KEY_PLAY>;
-			debounce-interval = <5>;
-		};
-
-		key-back {
-			label = "back";
-			gpios = <&portc 10 GPIO_ACTIVE_LOW>;
-			linux,code = <KEY_BACK>;
-			debounce-interval = <5>;
-		};
-
-		key-menu {
-			label = "menu";
-			gpios = <&portc 9 GPIO_ACTIVE_LOW>;
-			linux,code = <KEY_MENU>;
-			debounce-interval = <5>;
-		};
+	wifisd:wifi-sd@4320000 {
+		compatible = "cvitek,cv180x-sdio";
+		bus-width = <4>;
+		reg = <0x0 0x4320000 0x0 0x1000>;
+		reg_names = "core_mem";
+		src-frequency = <375000000>;
+		min-frequency = <400000>;
+		max-frequency = <50000000>;
+		64_addressing;
+		reset_tx_rx_phy;
+		non-removable;
+		pll_index = <0x7>;
+		pll_reg = <0x300207C>;
+		clocks = <&clk CV180X_CLK_SD1>;
+		clock-names = "clk_wifisd";
+		interrupts = <38 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-parent = <&plic0>;
+		no-mmc;
+		no-sd;
+		status = "disabled";
 	};
+
+	// gpio-keys {
+	// 	compatible = "gpio-keys";
+
+	// 	key-play {
+	// 		label = "play";
+	// 		gpios = <&porta 11 GPIO_ACTIVE_LOW>;
+	// 		linux,code = <KEY_PLAY>;
+	// 		debounce-interval = <5>;
+	// 	};
+
+	// 	key-back {
+	// 		label = "back";
+	// 		gpios = <&portc 10 GPIO_ACTIVE_LOW>;
+	// 		linux,code = <KEY_BACK>;
+	// 		debounce-interval = <5>;
+	// 	};
+
+	// 	key-menu {
+	// 		label = "menu";
+	// 		gpios = <&portc 9 GPIO_ACTIVE_LOW>;
+	// 		linux,code = <KEY_MENU>;
+	// 		debounce-interval = <5>;
+	// 	};
+	// };
 
 	backlight: backlight {
 		compatible = "pwm-backlight";
@@ -101,6 +100,30 @@
 		default-brightness-level = <200>;
 		post-pwm-on-delay-ms = <10>;
 	};
+
+	/delete-node/ i2s@04110000; // dma 冲突
+	// /delete-node/ cv-sd@4310000;
+	// /delete-node/ ethernet@4070000;
+	// /delete-node/ spi0@04180000;
+	// /delete-node/ spi2@041A0000;
+	// /delete-node/ spi3@041B0000;
+	// /delete-node/ i2c@04000000;
+	// /delete-node/ i2c@04010000;
+	// /delete-node/ i2c@04020000;
+	// /delete-node/ i2c@04030000;
+	// /delete-node/ i2c@04040000;
+	// /delete-node/ serial@04160000;
+	// /delete-node/ serial@04170000;
+	// /delete-node/ serial@041C0000;
+	// /delete-node/ cif;
+	// /delete-node/ vi;
+	// /delete-node/ vpss;
+	// /delete-node/ dwa;
+	// /delete-node/ rgn;
+	// /delete-node/ vcodec;
+	// /delete-node/ jpu;
+	// /delete-node/ cvi_vc_drv;
+
 };
 
 &spi1 {

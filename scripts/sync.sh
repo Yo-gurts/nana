@@ -136,9 +136,9 @@ TARGET_RAMDISK="$CURRENT_DIR/ramdisk/rootfs/overlay/cv1801b_y24_spinand"
 if [ "$CHECK_MODE" = "true" ]; then
     echo -e "${BLUE}执行检查模式...${NC}"
     check_sync_status "$SOURCE_BUILD" "$TARGET_BUILD" "build目录"
-    # check_sync_status "$SOURCE_RAMDISK" "$TARGET_RAMDISK" "ramdisk目录"
+    check_sync_status "$SOURCE_RAMDISK" "$TARGET_RAMDISK" "ramdisk目录"
 else
     echo -e "${BLUE}执行同步模式...${NC}"
     sync_directory "$SOURCE_BUILD" "$TARGET_BUILD" "build目录" "$REVERSE_MODE"
-    # sync_directory "$SOURCE_RAMDISK" "$TARGET_RAMDISK" "ramdisk目录" "$REVERSE_MODE"
+    sync_directory "$SOURCE_RAMDISK" "$TARGET_RAMDISK" "ramdisk目录" "$REVERSE_MODE"
 fi

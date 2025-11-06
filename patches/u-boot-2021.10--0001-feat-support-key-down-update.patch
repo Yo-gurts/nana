@@ -1,17 +1,30 @@
-From 75ccc01549bbd4a5a3fb931384883177c110320a Mon Sep 17 00:00:00 2001
+From be04ef5e8a8165697fc13ae244551e2e6dfa1808 Mon Sep 17 00:00:00 2001
 From: yogurt <yusong1117.u@gmail.com>
 Date: Sat, 25 Oct 2025 20:19:25 +0800
-Subject: [PATCH] [feat] support key-down update
+Subject: [PATCH] feat: support key-down update
 
 ---
- cmd/cvi_update.c | 58 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 58 insertions(+)
+ .gitignore       |  4 ++++
+ cmd/cvi_update.c | 59 ++++++++++++++++++++++++++++++++++++++++++++++++
+ lib/time.c       |  4 ++--
+ 3 files changed, 65 insertions(+), 2 deletions(-)
+ create mode 100644 .gitignore
 
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000000..3b30332ca8
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,4 @@
++build/
++include/cvi_board_memmap.h
++include/cvipart.h
++include/imgs.h
 diff --git a/cmd/cvi_update.c b/cmd/cvi_update.c
-index 3fc05488ae..530222c629 100644
+index 4a9ad7de74..f06f6d526f 100644
 --- a/cmd/cvi_update.c
 +++ b/cmd/cvi_update.c
-@@ -15,6 +15,7 @@
+@@ -16,6 +16,7 @@
  #include <blk.h>
  #include <fs.h>
  #include <stdlib.h>
@@ -19,7 +32,7 @@ index 3fc05488ae..530222c629 100644
  
  #define HEADER_SIZE 64
  #ifdef CONFIG_CMD_SAVEENV
-@@ -598,6 +599,60 @@ static int _uart_update(void)
+@@ -599,6 +600,61 @@ static int _uart_update(void)
  	return ret;
  }
  
@@ -51,36 +64,37 @@ index 3fc05488ae..530222c629 100644
 +	/* gpio debouncing */
 +	val = (mmio_read_32(gpio_value_addr) >> gpio_pin) & 0x1;
 +	printf("key value = %u (key down should be 0)\n", val);
-+	if (!val) {
++	if (val == 0) { // key down
++		// wait for debounce
 +		mdelay(10);
 +		val = (mmio_read_32(gpio_value_addr) >> gpio_pin) & 0x1;
 +		printf("repeat key value = %u (key down should be 0)\n", val);
-+		return !val;
++		return val == 0;
 +	}
-+	return 1; // pressed:1 unpressed:0
++	return false; // pressed:true unpressed:false
 +}
 +
 +static void check_update_key(void)
 +{
-+	if (!is_key_pressed())
-+		return;
-+
-+	// set boot source flag to usb update
-+	mmio_write_32(BOOT_SOURCE_FLAG_ADDR, USB_UPDATE_MAGIC);
-+	// set pwm to control led for notice update status
-+	mmio_write_32(0x03001008, 0x5);  /* pinmux: SET SD0_D0 AS PWM[13] mode */
-+	mmio_write_32(0x03063008, 10000); /* 低电平周期：10000*10ns: 100us */
-+	mmio_write_32(0x0306300c, 100000); /* 方波周期：100000*10ns: 1000us */
-+	mmio_write_32(0x03063040, 0x2); /* set pwm13 polarity */
-+	mmio_write_32(0x030630d0, 0x2); /* set pwm13 output enable */
-+	mmio_write_32(0x03063044, 0x0); /* stop pwm13 */
-+	mmio_write_32(0x03063044, 0x2); /* start pwm13 */
++	if (is_key_pressed()) {
++		printf("Update key is pressed, enter usb update mode...\n");
++		// set boot source flag to usb update
++		mmio_write_32(BOOT_SOURCE_FLAG_ADDR, USB_UPDATE_MAGIC);
++		// set pwm to control led for notice update status
++		mmio_write_32(0x03001008, 0x5);	   /* pinmux: SET SD0_D0 AS PWM[13] mode */
++		mmio_write_32(0x03063008, 10000);  /* 低电平周期：10000*10ns: 100us */
++		mmio_write_32(0x0306300c, 100000); /* 方波周期：100000*10ns: 1000us */
++		mmio_write_32(0x03063040, 0x2);	   /* set pwm13 polarity */
++		mmio_write_32(0x030630d0, 0x2);	   /* set pwm13 output enable */
++		mmio_write_32(0x03063044, 0x0);	   /* stop pwm13 */
++		mmio_write_32(0x03063044, 0x2);	   /* start pwm13 */
++	}
 +}
 +
  static int do_cvi_update(struct cmd_tbl *cmdtp, int flag, int argc,
  			 char *const argv[])
  {
-@@ -606,6 +661,9 @@ static int do_cvi_update(struct cmd_tbl *cmdtp, int flag, int argc,
+@@ -607,6 +663,9 @@ static int do_cvi_update(struct cmd_tbl *cmdtp, int flag, int argc,
  	int ret = 1;
  	uint32_t usb_pid = 0;
  
@@ -90,6 +104,28 @@ index 3fc05488ae..530222c629 100644
  	if (argc == 1) {
  		update_magic = readl((unsigned int *)BOOT_SOURCE_FLAG_ADDR);
  		if (update_magic == UART_UPDATE_MAGIC) {
+diff --git a/lib/time.c b/lib/time.c
+index 1fb151605b..ef7b69e535 100644
+--- a/lib/time.c
++++ b/lib/time.c
+@@ -3,7 +3,7 @@
+  * (C) Copyright 2000-2009
+  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
+  */
+-
++#define DEBUG
+ #include <common.h>
+ #include <bootstage.h>
+ #include <dm.h>
+@@ -96,7 +96,7 @@ uint64_t notrace get_ticks(void)
+ 
+ 		ret = dm_timer_init();
+ 		if (ret)
+-			panic("Could not initialize timer (err %d)\n", ret);
++			return ret;
+ #endif
+ 	}
+ 
 -- 
 2.34.1
 

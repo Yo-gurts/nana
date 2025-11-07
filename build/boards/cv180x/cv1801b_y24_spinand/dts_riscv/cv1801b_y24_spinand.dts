@@ -3,7 +3,7 @@
 #include "cv180x_asic_qfn.dtsi"
 #include "cv180x_asic_spinand.dtsi"
 #include "cv180x_default_memmap.dtsi"
-// #include <dt-bindings/input/input.h>
+#include <dt-bindings/input/input.h>
 
 / {
 	rotary:ratary-encoder {
@@ -36,30 +36,30 @@
 		status = "disabled";
 	};
 
-	// gpio-keys {
-	// 	compatible = "gpio-keys";
+	gpio-keys {
+		compatible = "gpio-keys";
 
-	// 	key-play {
-	// 		label = "play";
-	// 		gpios = <&porta 11 GPIO_ACTIVE_LOW>;
-	// 		linux,code = <KEY_PLAY>;
-	// 		debounce-interval = <5>;
-	// 	};
+		key-play {
+			label = "play";
+			gpios = <&porta 11 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_PLAY>;
+			debounce-interval = <5>;
+		};
 
-	// 	key-back {
-	// 		label = "back";
-	// 		gpios = <&portc 10 GPIO_ACTIVE_LOW>;
-	// 		linux,code = <KEY_BACK>;
-	// 		debounce-interval = <5>;
-	// 	};
+		key-back {
+			label = "back";
+			gpios = <&portc 10 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_BACK>;
+			debounce-interval = <5>;
+		};
 
-	// 	key-menu {
-	// 		label = "menu";
-	// 		gpios = <&portc 9 GPIO_ACTIVE_LOW>;
-	// 		linux,code = <KEY_MENU>;
-	// 		debounce-interval = <5>;
-	// 	};
-	// };
+		key-menu {
+			label = "menu";
+			gpios = <&portc 9 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_MENU>;
+			debounce-interval = <5>;
+		};
+	};
 
 	backlight: backlight {
 		compatible = "pwm-backlight";

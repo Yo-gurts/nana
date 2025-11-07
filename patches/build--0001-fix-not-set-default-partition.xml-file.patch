@@ -1,0 +1,42 @@
+From ba8f8751f3a41f8bba5489dea9484135f27bc655 Mon Sep 17 00:00:00 2001
+From: yogurt <yusong1117.u@gmail.com>
+Date: Fri, 7 Nov 2025 21:06:21 +0800
+Subject: [PATCH] fix: not set default partition.xml file
+
+---
+ envsetup_soc.sh | 19 -------------------
+ 1 file changed, 19 deletions(-)
+
+diff --git a/envsetup_soc.sh b/envsetup_soc.sh
+index a874847..92c1852 100644
+--- a/envsetup_soc.sh
++++ b/envsetup_soc.sh
+@@ -851,25 +851,6 @@ function cvi_setup_env()
+   # envs setup for specific ${SDK_VER}
+   envs_sdk_ver
+ 
+-  if [ "${STORAGE_TYPE}" == "spinand" ]; then
+-    PAGE_SUFFIX=2k
+-    if [ ${NANDFLASH_PAGESIZE} == 4096 ]; then
+-      PAGE_SUFFIX=4k
+-    fi
+-
+-    if [[ "$ENABLE_ALIOS" != "y" ]]; then
+-      pushd "$BUILD_PATH"/boards/"${CHIP_ARCH,,}"/"$PROJECT_FULLNAME"/partition/
+-      if [[ "$AB_SYSTEM" == "y" ]]; then
+-        ln -fs ../../../default/partition/partition_spinand_page_"$PAGE_SUFFIX"_ab.xml \
+-          partition_"$STORAGE_TYPE".xml
+-	  else
+-        ln -fs ../../../default/partition/partition_spinand_page_"$PAGE_SUFFIX".xml \
+-          partition_"$STORAGE_TYPE".xml
+-	  fi
+-      popd
+-    fi
+-  fi
+-
+   # configure flash partition table
+   if [ -z "${STORAGE_TYPE}" ]; then
+     FLASH_PARTITION_XML="$BUILD_PATH"/boards/default/partition/partition_none.xml
+-- 
+2.34.1
+

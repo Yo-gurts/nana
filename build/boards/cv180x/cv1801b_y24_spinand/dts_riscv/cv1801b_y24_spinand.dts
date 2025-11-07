@@ -102,28 +102,39 @@
 	};
 
 	/delete-node/ i2s@04110000; // dma 冲突
-	// /delete-node/ cv-sd@4310000;
-	// /delete-node/ ethernet@4070000;
-	// /delete-node/ spi0@04180000;
-	// /delete-node/ spi2@041A0000;
-	// /delete-node/ spi3@041B0000;
-	// /delete-node/ i2c@04000000;
-	// /delete-node/ i2c@04010000;
-	// /delete-node/ i2c@04020000;
-	// /delete-node/ i2c@04030000;
-	// /delete-node/ i2c@04040000;
-	// /delete-node/ serial@04160000;
-	// /delete-node/ serial@04170000;
-	// /delete-node/ serial@041C0000;
-	// /delete-node/ cif;
-	// /delete-node/ vi;
-	// /delete-node/ vpss;
-	// /delete-node/ dwa;
-	// /delete-node/ rgn;
-	// /delete-node/ vcodec;
-	// /delete-node/ jpu;
-	// /delete-node/ cvi_vc_drv;
+	/delete-node/ cv-sd@4310000;
+	/delete-node/ ethernet@4070000;
+	/delete-node/ spi0@04180000;
+	/delete-node/ spi2@041A0000;
+	/delete-node/ spi3@041B0000;
+	/delete-node/ i2c@04000000;
+	/delete-node/ i2c@04010000;
+	/delete-node/ i2c@04020000;
+	/delete-node/ i2c@04030000;
+	/delete-node/ i2c@04040000;
+	/delete-node/ serial@04160000;
+	/delete-node/ serial@04170000;
+	/delete-node/ serial@041C0000;
+	/delete-node/ cif;
+	/delete-node/ vi;
+	/delete-node/ vpss;
+	/delete-node/ dwa;
+	/delete-node/ rgn;
+	/delete-node/ vcodec;
+	/delete-node/ jpu;
+	/delete-node/ cvi_vc_drv;
 
+	aliases {
+		/delete-property/ ethernet0;
+		/delete-property/ serial2;
+		/delete-property/ serial3;
+		/delete-property/ serial4;
+		/delete-property/ i2c0;
+		/delete-property/ i2c1;
+		/delete-property/ i2c2;
+		/delete-property/ i2c3;
+		/delete-property/ i2c4;
+	};
 };
 
 &spi1 {

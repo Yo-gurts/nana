@@ -145,6 +145,10 @@
 	capability = "txrx";
 	cs-gpios = <&portb 10 GPIO_ACTIVE_LOW>;
 
+	spidev@0 {
+		status = "disabled";
+	};
+
 	st7789v@0 {
 		compatible = "sitronix,st7789v"; // 屏幕驱动名称：下面 step4 中设置
 		spi-max-frequency = <75000000>;   // SPI 的速率，影响帧率，注意 SPI 的上限和屏幕支持的上限
@@ -153,7 +157,7 @@
 		buswidth = <8>;
 		fps=<60>;
 		dc-gpios = <&portb 8 GPIO_ACTIVE_HIGH>;
-		reset-gpios = <&portc 6 GPIO_ACTIVE_HIGH>; // step2 确定 high/low
+		reset-gpios = <&portc 6 GPIO_ACTIVE_LOW>; // step2 确定 high/low
 		te-gpios = <&portc 7 GPIO_ACTIVE_HIGH>;
 		// rotation = <0>;
 		status = "okay";

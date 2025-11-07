@@ -2,6 +2,7 @@
 
 - [ ] https://github.com/sophgo/linux_5.10/tree/sg200x-dev/scripts/dtc/include-prefixes 路径下的文件应该是软链接而不是实体文件夹。导致 `dts` 中使用 `#include <dt-bindings/input/input.h>` 时找不到头文件。内部代码是软链接~ github 的v4.2.0 分支也不存在该问题~
 - [ ] 同时检查其他文件，是否存在类似的问题~ 软连接变实体文件或文件夹~
+- [ ] 按键烧录的方法，对于 nand 板卡来说，当分区表有变化时，可能会导致异常，因为擦除分区的信息是按fip.bin 中记录的，而这个信息可能和实际的分区表不一致，导致擦除失败，烧录正常但启动异常~
 
 ## NOTE
 

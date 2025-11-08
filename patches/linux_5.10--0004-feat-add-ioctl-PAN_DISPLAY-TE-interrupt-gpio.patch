@@ -1,0 +1,196 @@
+From 9c35dd8596939cb125ec76663ac168faa51daaa4 Mon Sep 17 00:00:00 2001
+From: yogurt <yusong1117.u@gmail.com>
+Date: Sat, 8 Nov 2025 15:52:53 +0800
+Subject: [PATCH 4/4] feat: add ioctl PAN_DISPLAY & TE interrupt gpio
+
+---
+ drivers/staging/fbtft/fbtft-core.c | 97 +++++++++++++++++++++++++++++-
+ drivers/staging/fbtft/fbtft.h      | 28 +++++++++
+ 2 files changed, 123 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/staging/fbtft/fbtft-core.c b/drivers/staging/fbtft/fbtft-core.c
+index 4f362dad4436..d7be8dfe688b 100644
+--- a/drivers/staging/fbtft/fbtft-core.c
++++ b/drivers/staging/fbtft/fbtft-core.c
+@@ -24,6 +24,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/property.h>
+ #include <linux/spinlock.h>
++#include <linux/interrupt.h>
+ 
+ #include <video/mipi_display.h>
+ 
+@@ -71,6 +72,93 @@ void fbtft_dbg_hex(const struct device *dev, int groupsize,
+ }
+ EXPORT_SYMBOL(fbtft_dbg_hex);
+ 
++static void fbtft_update_display(struct fbtft_par *par, unsigned int start_line,
++				 unsigned int end_line);
++
++/**
++ * @brief 每次收到TE中断，触发数据发送的工作队列，此过程disable中断，避免重复触发
++ */
++static irqreturn_t te_irq_handler(int irq, void *data)
++{
++	struct fbtft_par *par = (struct fbtft_par *)data;
++
++	disable_irq_nosync(par->te_irq); // Disable interrupt to avoid retrigger
++	schedule_work(&par->display_work_queue); // Schedule display update work
++	return IRQ_HANDLED;
++}
++
++/**
++ * @brief 处理TE中断触发的数据发送工作队列
++ */
++static void display_work(struct work_struct *work)
++{
++	struct fbtft_par *par =
++		container_of(work, struct fbtft_par, display_work_queue);
++
++	fbtft_update_display(par, 0, par->info->var.yres - 1);
++	par->display_state = state_display_end;
++	wake_up_all(&par->display_wait_queue);
++}
++
++/**
++ * @brief 初始化TE GPIO中断, 并注册TE中断处理函数
++ */
++static int init_te_gpio_irq(struct fbtft_par *par)
++{
++	int ret;
++	int irq_flags = IRQF_TRIGGER_NONE;
++	struct device *dev = par->info->device;
++
++	par->gpio.te = devm_gpiod_get_index(dev, "te", 0, GPIOD_IN);
++	if (IS_ERR(par->gpio.te)) {
++		ret = PTR_ERR(par->gpio.te);
++		dev_err(dev, "fbtft: failed to request te gpio: %d\n", ret);
++		return ret;
++	}
++
++	gpiod_direction_input(par->gpio.te);
++	par->te_irq = gpiod_to_irq(par->gpio.te);
++
++	// 中断触发方式使用下降沿触发
++	irq_flags |= IRQ_TYPE_EDGE_FALLING;
++
++	// 初始化工作队列，用于处理TE中断触发的数据发送
++	INIT_WORK(&par->display_work_queue, display_work);
++	init_waitqueue_head(&par->display_wait_queue);
++	ret = devm_request_irq(dev, par->te_irq, te_irq_handler, irq_flags,
++			       "slcd_te", par);
++	if (ret) {
++		dev_err(dev, "fbtft: failed to request te irq: %d\n", ret);
++		return ret;
++	}
++
++	// 初始化时，disable TE中断，避免触发数据发送
++	disable_irq(par->te_irq);
++
++	return 0;
++}
++
++/**
++ * @brief 应用层通过 IOCTL 发送PAN DISPLAY 来触发更新，使能中断，中断处理函数触发工作队列进行数据发送
++ */
++static int fbtft_fb_pan_display(struct fb_var_screeninfo *var,
++				struct fb_info *info)
++{
++	struct fbtft_par *par = info->par;
++
++	par->display_state = state_display_start;
++	enable_irq(par->te_irq); // 启用TE中断，等待TE中断触发
++
++	wait_event_timeout(par->display_wait_queue,
++			   par->display_state == state_display_end,
++			   msecs_to_jiffies(300));
++	if (par->display_state != state_display_end) {
++		printk(KERN_ERR "fbtft: pan display wait timeout");
++	}
++
++	return 0;
++}
++
+ static int fbtft_request_one_gpio(struct fbtft_par *par,
+ 				  const char *name, int index,
+ 				  struct gpio_desc **gpiop)
+@@ -130,6 +218,9 @@ static int fbtft_request_gpios(struct fbtft_par *par)
+ 			return ret;
+ 	}
+ 
++	// 初始化TE GPIO中断
++	init_te_gpio_irq(par);
++
+ 	return 0;
+ }
+ 
+@@ -362,8 +453,9 @@ static void fbtft_deferred_io(struct fb_info *info, struct list_head *pagelist)
+ 			dirty_lines_end = y_high;
+ 	}
+ 
+-	par->fbtftops.update_display(info->par,
+-					dirty_lines_start, dirty_lines_end);
++	// 为了避免撕裂，之前是有脏数据就更新，现在是等应用层通过 IOCTL 发送PAN DISPLAY 来触发更新
++	// par->fbtftops.update_display(info->par,
++	// 				dirty_lines_start, dirty_lines_end);
+ }
+ 
+ static void fbtft_fb_fillrect(struct fb_info *info,
+@@ -658,6 +750,7 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
+ 	fbops->fb_imageblit =      fbtft_fb_imageblit;
+ 	fbops->fb_setcolreg =      fbtft_fb_setcolreg;
+ 	fbops->fb_blank     =      fbtft_fb_blank;
++	fbops->fb_pan_display = fbtft_fb_pan_display;
+ 
+ 	fbdefio->delay =           HZ / fps;
+ 	fbdefio->deferred_io =     fbtft_deferred_io;
+diff --git a/drivers/staging/fbtft/fbtft.h b/drivers/staging/fbtft/fbtft.h
+index 76f8c090a837..f88e74bd62cb 100644
+--- a/drivers/staging/fbtft/fbtft.h
++++ b/drivers/staging/fbtft/fbtft.h
+@@ -143,6 +143,28 @@ struct fbtft_platform_data {
+ 	void *extra;
+ };
+ 
++/**
++ * Display state
++ *
++ * @state_display_start: Start of display update
++ * @state_display_end: End of display update
++ */
++enum fbtft_display_state {
++	state_display_start,
++	state_display_end,
++};
++
++/**
++ * TE: TE signal polarity
++ *
++ * @AT_FALLING_EDGE: TE signal is falling edge active
++ * @AT_RISING_EDGE: TE signal is rising edge active
++ */
++enum fbtft_signal_polarity {
++	AT_FALLING_EDGE,
++	AT_RISING_EDGE,
++};
++
+ /**
+  * struct fbtft_par - Main FBTFT data structure
+  *
+@@ -205,7 +227,13 @@ struct fbtft_par {
+ 	spinlock_t dirty_lock;
+ 	unsigned int dirty_lines_start;
+ 	unsigned int dirty_lines_end;
++	enum fbtft_display_state display_state;
++	enum fbtft_signal_polarity te_data_transfered_edge;
++	wait_queue_head_t display_wait_queue;
++	struct work_struct display_work_queue;
++	unsigned int te_irq;
+ 	struct {
++		struct gpio_desc *te;
+ 		struct gpio_desc *reset;
+ 		struct gpio_desc *dc;
+ 		struct gpio_desc *rd;
+-- 
+2.34.1
+
